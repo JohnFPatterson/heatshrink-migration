@@ -110,6 +110,23 @@ impl Decoder {
         self.input_buffer_size
     }
 
+    /// Snapshot of fields that appear before `buffers[]` in the C header.
+    pub fn abi_header(&self) -> (u16, u16, u16, u16, u16, u8, u8, u8, u8, u8, u16) {
+        (
+            self.input_size,
+            self.input_index,
+            self.output_count,
+            self.output_index,
+            self.head_index,
+            self.state as u8,
+            self.current_byte,
+            self.bit_index,
+            self.window_sz2,
+            self.lookahead_sz2,
+            self.input_buffer_size,
+        )
+    }
+
     pub fn sink(&mut self, in_buf: &[u8]) -> Result<(DecoderSink, usize)> {
         let rem = self.input_buffer_size as usize - self.input_size as usize;
         if rem == 0 {

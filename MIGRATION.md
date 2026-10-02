@@ -58,7 +58,41 @@ Stored analysis (do not start a scan): SonarQube Cloud project for this heatshri
 
 No Rust analysis uploaded yet. CI (`.travis.yml`) runs `make ci` only — there is no Sonar quality gate that fails on legacy C alone.
 
+## Tests
+
+| Suite | vs C | vs FFI | Rust port |
+|-------|------|--------|-----------|
+| `test_heatshrink_dynamic.c` (public API) | `make test` | `make ffi-tests` | `heatshrink-core/tests/api_suite.rs` |
+| `test_heatshrink_static.c` | `make test` | N/A (static alloc) | `static_integration_pseudorandom_roundtrip` |
+| `test_heatshrink_dynamic_theft.c` | out of scope | out of scope | out of scope |
+
+No white-box cases that `#include` `.c` internals. One dynamic test reads public struct fields (`hsd->input_size` / `input_index`); FFI keeps matching `#[repr(C)]` header field offsets and syncs them after each call.
+
+Removed from FFI: none (0 cases).
+
+## Export check
+
+Pattern: plain prototypes (multi-line). Extraction: flatten headers, collect `heatshrink_{encoder,decoder}_*` names. Expected count: **12**. `make export-check` → OK (0 missing).
+
 ## Unsafe audit
 
-- `heatshrink-core`: `forbid(unsafe_code)`
+```
+grep -rn "unsafe" --include='*.rs' --exclude-dir=target
+```
+
+- `heatshrink-core`: only `forbid(unsafe_code)` (no executable `unsafe`)
 - `heatshrink-ffi`: only crate with `unsafe`; every block has `SAFETY:`
+- `heatshrink-ffi` denies `unsafe_op_in_unsafe_fn` and `clippy::undocumented_unsafe_blocks`
+
+## Verification commands
+
+```sh
+make parity          # differential gate
+make test            # C suites
+make ffi-tests       # C suites linked to Rust FFI
+make export-check
+make asan-oracle
+cargo test --workspace --target-dir target
+cargo clippy --workspace --all-targets --target-dir target -- -D warnings
+cargo fmt --all --check
+```

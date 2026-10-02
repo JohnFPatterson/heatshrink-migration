@@ -163,7 +163,10 @@ fn do_encode(input: &[u8]) {
     println!("w={WBITS} l={LBITS} ibs={IBS}");
     match encode_all(input, 256) {
         Ok((comp, fin)) => {
-            print!("enc_ok=1\nenc_finish={fin}\nenc_len={}\nenc_hex=", comp.len());
+            print!(
+                "enc_ok=1\nenc_finish={fin}\nenc_len={}\nenc_hex=",
+                comp.len()
+            );
             print_hex(&comp);
             println!();
         }
@@ -182,7 +185,10 @@ fn do_decode(input: &[u8]) {
     };
     match decode_all(&comp, 256) {
         Ok((exp, fin)) => {
-            print!("dec_ok=1\ndec_finish={fin}\ndec_len={}\ndec_hex=", exp.len());
+            print!(
+                "dec_ok=1\ndec_finish={fin}\ndec_len={}\ndec_hex=",
+                exp.len()
+            );
             print_hex(&exp);
             println!();
         }

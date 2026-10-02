@@ -122,6 +122,37 @@ impl Encoder {
         self.lookahead_sz2
     }
 
+    pub fn input_size(&self) -> u16 {
+        self.input_size
+    }
+    pub fn match_scan_index(&self) -> u16 {
+        self.match_scan_index
+    }
+    pub fn match_length(&self) -> u16 {
+        self.match_length
+    }
+    pub fn match_pos(&self) -> u16 {
+        self.match_pos
+    }
+    pub fn outgoing_bits(&self) -> u16 {
+        self.outgoing_bits
+    }
+    pub fn outgoing_bits_count(&self) -> u8 {
+        self.outgoing_bits_count
+    }
+    pub fn flags(&self) -> u8 {
+        self.flags
+    }
+    pub fn state_u8(&self) -> u8 {
+        self.state as u8
+    }
+    pub fn current_byte(&self) -> u8 {
+        self.current_byte
+    }
+    pub fn bit_index(&self) -> u8 {
+        self.bit_index
+    }
+
     fn input_buffer_size(&self) -> u16 {
         1u16 << self.window_sz2
     }
@@ -332,13 +363,7 @@ impl Encoder {
         }
     }
 
-    fn find_longest_match(
-        &self,
-        start: u16,
-        end: u16,
-        maxlen: u16,
-        match_length: &mut u16,
-    ) -> u16 {
+    fn find_longest_match(&self, start: u16, end: u16, maxlen: u16, match_length: &mut u16) -> u16 {
         let buf = &self.buffer;
         let mut match_maxlen = 0u16;
         let mut match_index = MATCH_NOT_FOUND;
@@ -395,8 +420,7 @@ impl Encoder {
             }
         }
 
-        let break_even_point =
-            1u16 + u16::from(self.window_sz2) + u16::from(self.lookahead_sz2);
+        let break_even_point = 1u16 + u16::from(self.window_sz2) + u16::from(self.lookahead_sz2);
         if match_maxlen > break_even_point / 8 {
             *match_length = match_maxlen;
             end - match_index

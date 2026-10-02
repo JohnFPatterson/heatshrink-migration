@@ -53,21 +53,27 @@ ffi-tests: ffi-lib test_heatshrink_dynamic.od test_heatshrink_dynamic_theft.od
 
 export-check: ffi-lib
 	@mkdir -p build
-	@grep -hE '^(heatshrink_[a-z_]+)\(' heatshrink_encoder.h heatshrink_decoder.h \
-		| sed 's/(.*//' | sort -u > build/header-fns.txt
+	@# Plain prototypes may wrap across lines; pull the heatshrink_* symbol after the type.
+	@tr '\n' ' ' < heatshrink_encoder.h | tr ';' '\n' | \
+		sed -n 's/.*\(heatshrink_encoder_[a-z_]*\)(.*/\1/p' > build/header-fns.txt
+	@tr '\n' ' ' < heatshrink_decoder.h | tr ';' '\n' | \
+		sed -n 's/.*\(heatshrink_decoder_[a-z_]*\)(.*/\1/p' >> build/header-fns.txt
+	@sort -u build/header-fns.txt -o build/header-fns.txt
 	@nm -g target/release/libheatshrink_ffi.a 2>/dev/null \
 		| awk 'NF>=3 && ($$2=="T"||$$2=="t"){print $$3}' | sed 's/^_//' | sort -u \
 		> build/ffi-exports.txt
-	@echo "Header functions:" && cat build/header-fns.txt
+	@echo "Header functions ($$(wc -l < build/header-fns.txt)):" && cat build/header-fns.txt
 	@comm -23 build/header-fns.txt build/ffi-exports.txt > build/missing-exports.txt
 	@if [ -s build/missing-exports.txt ]; then \
 		echo "MISSING EXPORTS:"; cat build/missing-exports.txt; exit 1; \
 	else echo "export-check: OK"; fi
 
+# Prefer gcc for ASan — clang in this environment may lack asan runtime libs.
+ASAN_CC ?= gcc
 asan-oracle: tools/heatshrink-oracle.c heatshrink_encoder.c heatshrink_decoder.c
 	mkdir -p build/asan
-	${CC} -g -fsanitize=address,undefined -fno-omit-frame-pointer \
-		${CFLAGS_DYNAMIC} -I. -O1 -o build/asan/oracle \
+	${ASAN_CC} -g -fsanitize=address,undefined -fno-omit-frame-pointer \
+		-std=c99 -I. -DHEATSHRINK_DYNAMIC_ALLOC=1 -O1 -o build/asan/oracle \
 		tools/heatshrink-oracle.c heatshrink_encoder.c heatshrink_decoder.c
 	@for f in tests/inputs/*; do \
 		ASAN_OPTIONS=detect_leaks=0 build/asan/oracle "$$f" >/dev/null \

@@ -24,10 +24,65 @@ test: test_runners
 	./test_heatshrink_dynamic
 ci: test
 
+
+# C↔Rust differential drivers and parity gate helpers
+build/oracle: tools/heatshrink-oracle.c heatshrink_encoder.c heatshrink_decoder.c \
+		heatshrink_encoder.h heatshrink_decoder.h heatshrink_common.h heatshrink_config.h
+	mkdir -p build
+	${CC} ${CFLAGS_DYNAMIC} -I. -o build/oracle.tmp tools/heatshrink-oracle.c \
+		heatshrink_encoder.c heatshrink_decoder.c
+	mv -f build/oracle.tmp build/oracle
+
+parity-build: build/oracle rust-driver
+
+rust-driver:
+	cargo build --release --target-dir target -p heatshrink-driver
+
+parity: parity-build
+	printf '%s' '{"status":"completed","loop_count":0,"workspace_roots":["'"$$PWD"'"]}' \
+		| ./.cursor/hooks/c-rust-parity/parity_gate.py --force
+
+ffi-lib:
+	cargo build --release --target-dir target -p heatshrink-ffi
+
+ffi-tests: ffi-lib test_heatshrink_dynamic.od test_heatshrink_dynamic_theft.od
+	${CC} -o test_heatshrink_dynamic_ffi test_heatshrink_dynamic.od \
+		test_heatshrink_dynamic_theft.od \
+		target/release/libheatshrink_ffi.a ${CFLAGS_DYNAMIC} -lpthread -ldl -lm
+	./test_heatshrink_dynamic_ffi
+
+export-check: ffi-lib
+	@mkdir -p build
+	@tr '\n' ' ' < heatshrink_encoder.h | tr ';' '\n' | \
+		sed -n 's/.*\(heatshrink_encoder_[a-z_]*\)(.*/\1/p' > build/header-fns.txt
+	@tr '\n' ' ' < heatshrink_decoder.h | tr ';' '\n' | \
+		sed -n 's/.*\(heatshrink_decoder_[a-z_]*\)(.*/\1/p' >> build/header-fns.txt
+	@sort -u build/header-fns.txt -o build/header-fns.txt
+	@nm -g target/release/libheatshrink_ffi.a 2>/dev/null \
+		| awk 'NF>=3 && ($$2=="T"||$$2=="t"){print $$3}' | sed 's/^_//' | sort -u \
+		> build/ffi-exports.txt
+	@echo "Header functions ($$(wc -l < build/header-fns.txt)):" && cat build/header-fns.txt
+	@comm -23 build/header-fns.txt build/ffi-exports.txt > build/missing-exports.txt
+	@if [ -s build/missing-exports.txt ]; then \
+		echo "MISSING EXPORTS:"; cat build/missing-exports.txt; exit 1; \
+	else echo "export-check: OK"; fi
+
+ASAN_CC ?= gcc
+asan-oracle: tools/heatshrink-oracle.c heatshrink_encoder.c heatshrink_decoder.c
+	mkdir -p build/asan
+	${ASAN_CC} -g -fsanitize=address,undefined -fno-omit-frame-pointer \
+		-std=c99 -I. -DHEATSHRINK_DYNAMIC_ALLOC=1 -O1 -o build/asan/oracle \
+		tools/heatshrink-oracle.c heatshrink_encoder.c heatshrink_decoder.c
+	@for f in tests/inputs/*; do \
+		ASAN_OPTIONS=detect_leaks=0 build/asan/oracle "$$f" >/dev/null \
+			|| echo "ASAN: $$f"; \
+	done
+	@echo "asan-oracle: done"
+
 clean:
-	rm -f heatshrink test_heatshrink_{dynamic,static} \
+	rm -f heatshrink test_heatshrink_{dynamic,static,dynamic_ffi} \
 		*.o *.os *.od *.core *.a {dec,enc}_sm.png TAGS
-	rm -rf ${BENCHMARK_OUT}
+	rm -rf ${BENCHMARK_OUT} build/oracle build/asan target
 
 TAGS:
 	etags *.[ch]

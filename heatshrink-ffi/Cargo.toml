@@ -1,0 +1,13 @@
+[package]
+name = "heatshrink-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "C ABI shim for heatshrink-core"
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+name = "heatshrink_ffi"
+
+[dependencies]
+heatshrink-core = { path = "../heatshrink-core" }

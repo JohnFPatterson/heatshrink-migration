@@ -1,0 +1,8 @@
+[package]
+name = "heatshrink-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Safe Rust port of the heatshrink compression library (logic only)"
+
+[dependencies]

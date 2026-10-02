@@ -1,0 +1,8 @@
+[package]
+name = "heatshrink-core"
+version = "0.4.1"
+edition = "2021"
+license = "ISC"
+description = "Safe Rust port of the heatshrink LZSS codec (logic only)"
+
+[dependencies]

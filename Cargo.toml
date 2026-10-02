@@ -1,0 +1,16 @@
+[package]
+name = "heatshrink"
+version = "0.4.1"
+edition = "2021"
+authors = ["Scott Vokes <vokes.s@gmail.com>"]
+description = "LZSS data compression for embedded/real-time systems (Rust port)"
+license = "ISC"
+readme = "README.md"
+
+[[bin]]
+name = "heatshrink"
+path = "src/bin/heatshrink.rs"
+
+[lib]
+name = "heatshrink"
+path = "src/lib.rs"

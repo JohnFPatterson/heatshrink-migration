@@ -132,6 +132,18 @@ documentation.
 [index]: http://spin.atomicobject.com/2014/01/13/lightweight-indexing-for-embedded-systems/
 [LZSS]: http://en.wikipedia.org/wiki/Lempel-Ziv-Storer-Szymanski
 
+## Rust port
+
+This repository includes a Rust port of the encoder, decoder, and CLI (see `Cargo.toml` and `src/`). Build and test with:
+
+```sh
+cargo build --release
+cargo test
+./target/release/heatshrink -e -w 8 -l 4 < input.bin > output.hs
+```
+
+The Rust API mirrors the C state machine (`Encoder` / `Decoder` with `sink`, `poll`, and `finish`). Dynamic allocation and indexing (`HEATSHRINK_USE_INDEX`) are enabled by default, matching `heatshrink_config.h`.
+
 
 ## Build Status
 

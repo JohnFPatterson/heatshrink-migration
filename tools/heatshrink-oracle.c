@@ -75,7 +75,42 @@ static int grow(uint8_t **buf, size_t *cap, size_t need) {
     return 0;
 }
 
-/* Encode in using sink/poll chunk sizes. */
+/* Append at most src_cap bytes from src into a growable buffer. */
+static int append_bounded(uint8_t **dst, size_t *dst_len, size_t *dst_cap,
+                          const uint8_t *src, size_t n, size_t src_cap) {
+    if (n > src_cap) return -1;
+    if (grow(dst, dst_cap, *dst_len + n) != 0) return -1;
+    if (n > 0) {
+        memcpy(*dst + *dst_len, src, n);
+    }
+    *dst_len += n;
+    return 0;
+}
+
+typedef int (*poll_fn)(void *ctx, uint8_t *out, size_t out_sz, size_t *out_len);
+
+static int poll_until_empty(void *ctx, poll_fn poll, uint8_t *tmp, size_t tsz,
+                            uint8_t **dst, size_t *dst_len, size_t *dst_cap) {
+    for (;;) {
+        size_t polled = 0;
+        int pres = poll(ctx, tmp, tsz, &polled);
+        if (pres < 0) return -1;
+        /* Bound copy length to the poll buffer capacity (c:S3519). */
+        if (append_bounded(dst, dst_len, dst_cap, tmp, polled, tsz) != 0) {
+            return -1;
+        }
+        if (pres != 1) return 0; /* 1 == MORE for both encoder and decoder */
+    }
+}
+
+static int enc_poll_adapter(void *ctx, uint8_t *out, size_t out_sz, size_t *out_len) {
+    return (int)heatshrink_encoder_poll((heatshrink_encoder *)ctx, out, out_sz, out_len);
+}
+
+static int dec_poll_adapter(void *ctx, uint8_t *out, size_t out_sz, size_t *out_len) {
+    return (int)heatshrink_decoder_poll((heatshrink_decoder *)ctx, out, out_sz, out_len);
+}
+
 static int encode_all(const uint8_t *in, size_t in_len,
                       uint8_t **out, size_t *out_len,
                       size_t chunk, const char **finish_name) {
@@ -86,39 +121,21 @@ static int encode_all(const uint8_t *in, size_t in_len,
     uint8_t *comp = malloc(cap);
     if (!comp) { heatshrink_encoder_free(hse); return -1; }
     size_t clen = 0;
-    uint8_t *tmp = malloc(chunk ? chunk : 1);
-    if (!tmp) { free(comp); heatshrink_encoder_free(hse); return -1; }
     size_t tsz = chunk ? chunk : 1;
+    uint8_t *tmp = malloc(tsz);
+    if (!tmp) { free(comp); heatshrink_encoder_free(hse); return -1; }
 
     size_t offset = 0;
     while (offset < in_len) {
         size_t sunk = 0;
         size_t avail = in_len - offset;
         size_t to_sink = avail < tsz ? avail : tsz;
-        HSE_sink_res sres = heatshrink_encoder_sink(hse,
-            (uint8_t *)(in + offset), to_sink, &sunk);
-        if (sres < 0) {
+        if (heatshrink_encoder_sink(hse, (uint8_t *)(in + offset), to_sink, &sunk) < 0) {
             free(tmp); free(comp); heatshrink_encoder_free(hse); return -1;
         }
         offset += sunk;
-
-        HSE_poll_res pres;
-        do {
-            size_t polled = 0;
-            pres = heatshrink_encoder_poll(hse, tmp, tsz, &polled);
-            if (pres < 0) {
-                free(tmp); free(comp); heatshrink_encoder_free(hse); return -1;
-            }
-            if (grow(&comp, &cap, clen + polled) != 0) {
-                free(tmp); free(comp); heatshrink_encoder_free(hse); return -1;
-            }
-            memcpy(comp + clen, tmp, polled);
-            clen += polled;
-        } while (pres == HSER_POLL_MORE);
-
-        if (sunk == 0 && to_sink > 0) {
-            /* buffer full but poll produced nothing unexpected; retry */
-            continue;
+        if (poll_until_empty(hse, enc_poll_adapter, tmp, tsz, &comp, &clen, &cap) != 0) {
+            free(tmp); free(comp); heatshrink_encoder_free(hse); return -1;
         }
     }
 
@@ -128,19 +145,9 @@ static int encode_all(const uint8_t *in, size_t in_len,
         if (fres < 0) {
             free(tmp); free(comp); heatshrink_encoder_free(hse); return -1;
         }
-        HSE_poll_res pres;
-        do {
-            size_t polled = 0;
-            pres = heatshrink_encoder_poll(hse, tmp, tsz, &polled);
-            if (pres < 0) {
-                free(tmp); free(comp); heatshrink_encoder_free(hse); return -1;
-            }
-            if (grow(&comp, &cap, clen + polled) != 0) {
-                free(tmp); free(comp); heatshrink_encoder_free(hse); return -1;
-            }
-            memcpy(comp + clen, tmp, polled);
-            clen += polled;
-        } while (pres == HSER_POLL_MORE);
+        if (poll_until_empty(hse, enc_poll_adapter, tmp, tsz, &comp, &clen, &cap) != 0) {
+            free(tmp); free(comp); heatshrink_encoder_free(hse); return -1;
+        }
         if (fres == HSER_FINISH_DONE) break;
     }
 
@@ -163,9 +170,9 @@ static int decode_all(const uint8_t *in, size_t in_len,
     uint8_t *exp = malloc(cap);
     if (!exp) { heatshrink_decoder_free(hsd); return -1; }
     size_t elen = 0;
-    uint8_t *tmp = malloc(chunk ? chunk : 1);
-    if (!tmp) { free(exp); heatshrink_decoder_free(hsd); return -1; }
     size_t tsz = chunk ? chunk : 1;
+    uint8_t *tmp = malloc(tsz);
+    if (!tmp) { free(exp); heatshrink_decoder_free(hsd); return -1; }
 
     size_t offset = 0;
     while (offset < in_len) {
@@ -177,25 +184,12 @@ static int decode_all(const uint8_t *in, size_t in_len,
         if (sres < 0) {
             free(tmp); free(exp); heatshrink_decoder_free(hsd); return -1;
         }
-        if (sres == HSDR_SINK_FULL && sunk == 0) {
-            /* need to poll first */
-        } else {
+        if (!(sres == HSDR_SINK_FULL && sunk == 0)) {
             offset += sunk;
         }
-
-        HSD_poll_res pres;
-        do {
-            size_t polled = 0;
-            pres = heatshrink_decoder_poll(hsd, tmp, tsz, &polled);
-            if (pres < 0) {
-                free(tmp); free(exp); heatshrink_decoder_free(hsd); return -1;
-            }
-            if (grow(&exp, &cap, elen + polled) != 0) {
-                free(tmp); free(exp); heatshrink_decoder_free(hsd); return -1;
-            }
-            memcpy(exp + elen, tmp, polled);
-            elen += polled;
-        } while (pres == HSDR_POLL_MORE);
+        if (poll_until_empty(hsd, dec_poll_adapter, tmp, tsz, &exp, &elen, &cap) != 0) {
+            free(tmp); free(exp); heatshrink_decoder_free(hsd); return -1;
+        }
     }
 
     HSD_finish_res fres;
@@ -204,19 +198,9 @@ static int decode_all(const uint8_t *in, size_t in_len,
         if (fres < 0) {
             free(tmp); free(exp); heatshrink_decoder_free(hsd); return -1;
         }
-        HSD_poll_res pres;
-        do {
-            size_t polled = 0;
-            pres = heatshrink_decoder_poll(hsd, tmp, tsz, &polled);
-            if (pres < 0) {
-                free(tmp); free(exp); heatshrink_decoder_free(hsd); return -1;
-            }
-            if (grow(&exp, &cap, elen + polled) != 0) {
-                free(tmp); free(exp); heatshrink_decoder_free(hsd); return -1;
-            }
-            memcpy(exp + elen, tmp, polled);
-            elen += polled;
-        } while (pres == HSDR_POLL_MORE);
+        if (poll_until_empty(hsd, dec_poll_adapter, tmp, tsz, &exp, &elen, &cap) != 0) {
+            free(tmp); free(exp); heatshrink_decoder_free(hsd); return -1;
+        }
         if (fres == HSDR_FINISH_DONE) break;
     }
 

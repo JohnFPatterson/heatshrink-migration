@@ -6,7 +6,15 @@
   "input_mode": "arg",
   "fixtures": ["tests/inputs/**/*"],
   "report_dir": "build/parity-gate",
-  "oracle_sources": ["*.c", "*.h"],
+  "oracle_sources": [
+    "heatshrink_encoder.c",
+    "heatshrink_decoder.c",
+    "heatshrink.c",
+    "heatshrink_encoder.h",
+    "heatshrink_decoder.h",
+    "heatshrink_common.h",
+    "heatshrink_config.h"
+  ],
   "exceptions_file": "PARITY_EXCEPTIONS.md",
   "exceptions_rs": ["*-core/tests/exceptions.rs"],
   "exceptions_test": ["cargo", "test", "-p", "heatshrink-core", "--test", "exceptions", "--target-dir", "target"],

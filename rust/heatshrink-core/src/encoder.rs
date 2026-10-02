@@ -128,7 +128,8 @@ impl Encoder {
         let write_offset = self.get_input_offset() + self.input_size;
         let ibs = self.get_input_buffer_size();
         let rem = ibs - self.input_size;
-        let cp_sz = rem.min(in_buf.len() as u16);
+        // Compare in usize: `len as u16` wraps multiples of 65536 to 0 and sinks nothing.
+        let cp_sz = (rem as usize).min(in_buf.len()) as u16;
 
         let end = write_offset as usize + cp_sz as usize;
         self.buffer[write_offset as usize..end].copy_from_slice(&in_buf[..cp_sz as usize]);

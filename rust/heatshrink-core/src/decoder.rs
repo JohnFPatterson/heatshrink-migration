@@ -108,7 +108,8 @@ impl Decoder {
             return (DecoderSinkRes::Full, 0);
         }
 
-        let size = rem.min(in_buf.len() as u16);
+        // Compare in usize: `len as u16` wraps multiples of 65536 to 0 and sinks nothing.
+        let size = (rem as usize).min(in_buf.len()) as u16;
         let end = self.input_size as usize + size as usize;
         self.buffers[self.input_size as usize..end].copy_from_slice(&in_buf[..size as usize]);
         self.input_size += size;
@@ -284,7 +285,8 @@ impl Decoder {
     fn st_yield_backref(&mut self, oi: &mut OutputInfo<'_>) -> HsdState {
         let mut count = oi.buf.len() - *oi.output_size;
         if count > 0 {
-            if self.output_count < count as u16 {
+            // Promote the remaining count: `count as u16` wraps a 64KiB poll and skips the clamp.
+            if (self.output_count as usize) < count {
                 count = self.output_count as usize;
             }
             let ibs = self.input_buffer_size() as usize;

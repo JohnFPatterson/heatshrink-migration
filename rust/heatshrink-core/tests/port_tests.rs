@@ -1,7 +1,7 @@
 use heatshrink_core::{
-    decode_all, encode_all, Decoder, DecoderPollRes, Encoder, EncoderFinishRes, EncoderPollRes,
-    EncoderSinkRes, HEATSHRINK_MAX_WINDOW_BITS, HEATSHRINK_MIN_LOOKAHEAD_BITS,
-    HEATSHRINK_MIN_WINDOW_BITS,
+    decode_all, encode_all, Decoder, DecoderFinishRes, DecoderPollRes, DecoderSinkRes, Encoder,
+    EncoderFinishRes, EncoderPollRes, EncoderSinkRes, HEATSHRINK_MAX_WINDOW_BITS,
+    HEATSHRINK_MIN_LOOKAHEAD_BITS, HEATSHRINK_MIN_WINDOW_BITS,
 };
 
 #[test]
@@ -113,4 +113,53 @@ fn roundtrip_pseudorandom() {
 fn encode_empty_input() {
     let out = encode_all(b"", 8, 4).unwrap();
     assert!(out.is_empty());
+}
+
+#[test]
+fn sink_accepts_multiple_of_64kib() {
+    let input = vec![b'a'; 65_536];
+
+    let mut hsd = Decoder::alloc(64, 8, 3).unwrap();
+    let (sres, n) = hsd.sink(&input);
+    assert_eq!(sres, DecoderSinkRes::Ok);
+    assert_eq!(n, 64);
+
+    let mut hsd_max = Decoder::alloc(u16::MAX, 4, 3).unwrap();
+    let (sres, n) = hsd_max.sink(&input);
+    assert_eq!(sres, DecoderSinkRes::Ok);
+    assert_eq!(n, usize::from(u16::MAX));
+
+    let mut hse = Encoder::alloc(8, 3).unwrap();
+    let (sres, n) = hse.sink(&input);
+    assert_eq!(sres, EncoderSinkRes::Ok);
+    assert_eq!(n, 1 << 8);
+
+    let mut hse_max = Encoder::alloc(HEATSHRINK_MAX_WINDOW_BITS, 3).unwrap();
+    let (sres, n) = hse_max.sink(&input);
+    assert_eq!(sres, EncoderSinkRes::Ok);
+    assert_eq!(n, 1 << HEATSHRINK_MAX_WINDOW_BITS);
+}
+
+#[test]
+fn poll_resumes_backref_into_64kib_buffer() {
+    let input = vec![b'a'; 200];
+    let comp = encode_all(&input, 8, 7).unwrap();
+    let mut hsd = Decoder::alloc(256, 8, 7).unwrap();
+    let (sres, n) = hsd.sink(&comp);
+    assert_eq!(sres, DecoderSinkRes::Ok);
+    assert_eq!(n, comp.len());
+
+    // Fill a short buffer so the next poll resumes inside a back-reference.
+    let mut prefix = [0u8; 4];
+    let (pres, w) = hsd.poll(&mut prefix);
+    assert_eq!(pres, DecoderPollRes::More);
+    assert_eq!(w, prefix.len());
+    assert_eq!(&prefix, &input[..prefix.len()]);
+
+    let mut rest = vec![0u8; 65_536];
+    let (pres, w) = hsd.poll(&mut rest);
+    assert_eq!(pres, DecoderPollRes::Empty);
+    assert_eq!(w, input.len() - prefix.len());
+    assert_eq!(&rest[..w], &input[prefix.len()..]);
+    assert_eq!(hsd.finish(), DecoderFinishRes::Done);
 }

@@ -22,7 +22,11 @@ test_runners: test_heatshrink_static test_heatshrink_dynamic
 test: test_runners
 	./test_heatshrink_static
 	./test_heatshrink_dynamic
-ci: test
+ci: test rust-test
+
+rust-test:
+	cd rust && cargo test && cargo clippy --all-targets -- -D warnings
+	bash rust/scripts/c_cli_parity.sh
 
 clean:
 	rm -f heatshrink test_heatshrink_{dynamic,static} \

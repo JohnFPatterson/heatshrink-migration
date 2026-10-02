@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = [
+    "heatshrink-core",
+    "heatshrink-ffi",
+    "heatshrink-cli",
+]
+default-members = ["heatshrink-core", "heatshrink-ffi", "heatshrink-cli"]
+
+[workspace.package]
+version = "0.4.1"
+edition = "2021"
+license = "ISC"
+authors = ["Scott Vokes <vokes.s@gmail.com>"]
+description = "LZSS compression for embedded systems (Rust port of heatshrink)"
+repository = "https://github.com/atomicobject/heatshrink"
+
+[workspace.dependencies]
+heatshrink-core = { path = "heatshrink-core", version = "0.4.1" }

@@ -133,6 +133,22 @@ documentation.
 [LZSS]: http://en.wikipedia.org/wiki/Lempel-Ziv-Storer-Szymanski
 
 
+## Rust port
+
+A Rust implementation lives under [`rust/`](rust/). It mirrors the dynamic-allocation C API and CLI behavior:
+
+- **`heatshrink-core`** — safe encoder/decoder (`sink` / `poll` / `finish` streaming API plus `encode_all` / `decode_all`)
+- **`heatshrink-ffi`** — C ABI (`heatshrink_encoder_*`, `heatshrink_decoder_*`) for linking from C
+- **`heatshrink-cli`** — `heatshrink` command-line tool
+
+```bash
+cd rust && cargo test
+make rust-test    # C tests + Rust tests + C/Rust CLI parity script
+```
+
+The original C sources in this repository remain the reference implementation; see `rust/README.md` for crate details.
+
+
 ## Build Status
 
   [![Build Status](https://travis-ci.org/atomicobject/heatshrink.png)](http://travis-ci.org/atomicobject/heatshrink)

@@ -9,3 +9,4 @@ test_heatshrink_static
 *.dSYM
 *.exe
 benchmark_out/
+rust/target/

@@ -133,6 +133,10 @@ documentation.
 [LZSS]: http://en.wikipedia.org/wiki/Lempel-Ziv-Storer-Szymanski
 
 
+## Rust port
+
+A Rust implementation lives under [`rust/`](rust/). It provides `heatshrink-core` (safe logic), `heatshrink-ffi` (C ABI for dynamic alloc), and a `heatshrink` CLI. See [`rust/README.md`](rust/README.md) for build and test instructions.
+
 ## Build Status
 
   [![Build Status](https://travis-ci.org/atomicobject/heatshrink.png)](http://travis-ci.org/atomicobject/heatshrink)

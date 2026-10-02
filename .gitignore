@@ -1,6 +1,7 @@
 heatshrink
 test_heatshrink_dynamic
 test_heatshrink_static
+rust/target/
 *.o
 *.od
 *.os

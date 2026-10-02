@@ -32,7 +32,10 @@ pub extern "C" fn heatshrink_encoder_alloc(
     }
 }
 
-/// SAFETY: `hse` must be null or a pointer from `heatshrink_encoder_alloc`.
+/// Free an encoder allocated by [`heatshrink_encoder_alloc`].
+///
+/// # Safety
+/// `hse` must be null or a pointer from `heatshrink_encoder_alloc` not already freed.
 #[no_mangle]
 pub unsafe extern "C" fn heatshrink_encoder_free(hse: *mut HeatshrinkEncoder) {
     if hse.is_null() {
@@ -44,7 +47,10 @@ pub unsafe extern "C" fn heatshrink_encoder_free(hse: *mut HeatshrinkEncoder) {
     }
 }
 
-/// SAFETY: `hse` must be a valid encoder from `heatshrink_encoder_alloc`.
+/// Reset an encoder to its initial state.
+///
+/// # Safety
+/// `hse` must be a valid encoder from `heatshrink_encoder_alloc`.
 #[no_mangle]
 pub unsafe extern "C" fn heatshrink_encoder_reset(hse: *mut HeatshrinkEncoder) {
     if hse.is_null() {
@@ -56,7 +62,10 @@ pub unsafe extern "C" fn heatshrink_encoder_reset(hse: *mut HeatshrinkEncoder) {
     }
 }
 
-/// SAFETY: `hse`, `in_buf`, and `input_size` must be valid for the given `size`.
+/// Sink input bytes into the encoder.
+///
+/// # Safety
+/// `hse`, `in_buf`, and `input_size` must be valid; `in_buf` readable for `size` bytes.
 #[no_mangle]
 pub unsafe extern "C" fn heatshrink_encoder_sink(
     hse: *mut HeatshrinkEncoder,
@@ -80,7 +89,10 @@ pub unsafe extern "C" fn heatshrink_encoder_sink(
     }
 }
 
-/// SAFETY: `hse`, `out_buf`, and `output_size` must be valid for `out_buf_size`.
+/// Poll compressed output from the encoder.
+///
+/// # Safety
+/// `hse`, `out_buf`, and `output_size` must be valid; `out_buf` writable for `out_buf_size`.
 #[no_mangle]
 pub unsafe extern "C" fn heatshrink_encoder_poll(
     hse: *mut HeatshrinkEncoder,
@@ -104,7 +116,10 @@ pub unsafe extern "C" fn heatshrink_encoder_poll(
     }
 }
 
-/// SAFETY: `hse` must be a valid encoder or null.
+/// Notify the encoder that the input stream is finished.
+///
+/// # Safety
+/// `hse` must be a valid encoder or null.
 #[no_mangle]
 pub unsafe extern "C" fn heatshrink_encoder_finish(hse: *mut HeatshrinkEncoder) -> i8 {
     if hse.is_null() {
@@ -126,7 +141,10 @@ pub extern "C" fn heatshrink_decoder_alloc(
     }
 }
 
-/// SAFETY: `hsd` must be null or from `heatshrink_decoder_alloc`.
+/// Free a decoder allocated by [`heatshrink_decoder_alloc`].
+///
+/// # Safety
+/// `hsd` must be null or from `heatshrink_decoder_alloc` not already freed.
 #[no_mangle]
 pub unsafe extern "C" fn heatshrink_decoder_free(hsd: *mut HeatshrinkDecoder) {
     if hsd.is_null() {
@@ -138,7 +156,10 @@ pub unsafe extern "C" fn heatshrink_decoder_free(hsd: *mut HeatshrinkDecoder) {
     }
 }
 
-/// SAFETY: `hsd` must be a valid decoder from alloc.
+/// Reset a decoder to its initial state.
+///
+/// # Safety
+/// `hsd` must be a valid decoder from alloc.
 #[no_mangle]
 pub unsafe extern "C" fn heatshrink_decoder_reset(hsd: *mut HeatshrinkDecoder) {
     if hsd.is_null() {
@@ -150,7 +171,10 @@ pub unsafe extern "C" fn heatshrink_decoder_reset(hsd: *mut HeatshrinkDecoder) {
     }
 }
 
-/// SAFETY: `hsd`, `in_buf`, and `input_size` must be valid for `size`.
+/// Sink compressed bytes into the decoder.
+///
+/// # Safety
+/// `hsd`, `in_buf`, and `input_size` must be valid; `in_buf` readable for `size`.
 #[no_mangle]
 pub unsafe extern "C" fn heatshrink_decoder_sink(
     hsd: *mut HeatshrinkDecoder,
@@ -174,7 +198,10 @@ pub unsafe extern "C" fn heatshrink_decoder_sink(
     }
 }
 
-/// SAFETY: `hsd`, `out_buf`, and `output_size` must be valid for `out_buf_size`.
+/// Poll decompressed output from the decoder.
+///
+/// # Safety
+/// `hsd`, `out_buf`, and `output_size` must be valid; `out_buf` writable for `out_buf_size`.
 #[no_mangle]
 pub unsafe extern "C" fn heatshrink_decoder_poll(
     hsd: *mut HeatshrinkDecoder,
@@ -198,7 +225,10 @@ pub unsafe extern "C" fn heatshrink_decoder_poll(
     }
 }
 
-/// SAFETY: `hsd` must be a valid decoder or null.
+/// Notify the decoder that the input stream is finished.
+///
+/// # Safety
+/// `hsd` must be a valid decoder or null.
 #[no_mangle]
 pub unsafe extern "C" fn heatshrink_decoder_finish(hsd: *mut HeatshrinkDecoder) -> i8 {
     if hsd.is_null() {

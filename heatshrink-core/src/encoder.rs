@@ -347,13 +347,7 @@ impl Encoder {
         self.push_bits(1, tag, oi);
     }
 
-    fn find_longest_match(
-        &self,
-        start: u16,
-        end: u16,
-        maxlen: u16,
-        match_length: &mut u16,
-    ) -> u16 {
+    fn find_longest_match(&self, start: u16, end: u16, maxlen: u16, match_length: &mut u16) -> u16 {
         let buf = &self.buffer;
         let mut match_maxlen = 0u16;
         let mut match_index = MATCH_NOT_FOUND;
@@ -362,7 +356,8 @@ impl Encoder {
 
         while pos - start as i16 >= 0 {
             let pos_usize = pos as usize;
-            if buf[pos_usize + match_maxlen as usize] != buf[needlepoint_base + match_maxlen as usize]
+            if buf[pos_usize + match_maxlen as usize]
+                != buf[needlepoint_base + match_maxlen as usize]
             {
                 pos = self.search_index[pos_usize];
                 continue;
@@ -384,8 +379,7 @@ impl Encoder {
             pos = self.search_index[pos_usize];
         }
 
-        let break_even_point =
-            1u16 + u16::from(self.window_sz2) + u16::from(self.lookahead_sz2);
+        let break_even_point = 1u16 + u16::from(self.window_sz2) + u16::from(self.lookahead_sz2);
         if match_maxlen > break_even_point / 8 {
             *match_length = match_maxlen;
             end - match_index

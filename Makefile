@@ -141,6 +141,6 @@ parity: parity-build
 
 asan-oracle: tools/heatshrink-oracle.c heatshrink_encoder.c heatshrink_decoder.c
 	mkdir -p build/asan
-	$(CC) -std=c99 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -I. \
+	gcc -std=c99 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -I. \
 		-o build/asan/oracle tools/heatshrink-oracle.c heatshrink_encoder.c heatshrink_decoder.c
 

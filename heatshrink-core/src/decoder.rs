@@ -64,11 +64,7 @@ pub struct Decoder {
 }
 
 impl Decoder {
-    pub fn alloc(
-        input_buffer_size: u16,
-        window_sz2: u8,
-        lookahead_sz2: u8,
-    ) -> Result<Self, Error> {
+    pub fn alloc(input_buffer_size: u16, window_sz2: u8, lookahead_sz2: u8) -> Result<Self, Error> {
         if !(MIN_WINDOW_BITS..=MAX_WINDOW_BITS).contains(&window_sz2)
             || input_buffer_size == 0
             || lookahead_sz2 < MIN_LOOKAHEAD_BITS

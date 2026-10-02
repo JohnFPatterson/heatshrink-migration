@@ -63,5 +63,40 @@ Fixed driver parameters: `window_sz2=8`, `lookahead_sz2=4`, decoder input buffer
 
 | Module | Owner | `ready` |
 |--------|-------|---------|
-| `encoder` | lead | flipped when encoder section identical |
-| `decoder` | subagent | flipped when decoder section identical |
+| `encoder` | lead | `true` |
+| `decoder` | subagent | `true` |
+
+## Unsafe audit
+
+```sh
+grep -rn "unsafe" --include='*.rs' --exclude-dir=target .
+```
+
+- `heatshrink-core`: only `#![forbid(unsafe_code)]` (no executable `unsafe`)
+- `heatshrink-ffi`: all `unsafe` blocks/fns have `SAFETY:` comments and `# Safety` docs; `#![deny(unsafe_op_in_unsafe_fn)]` and `#![deny(clippy::undocumented_unsafe_blocks)]`
+- `heatshrink-driver`: no `unsafe`
+
+## Export check
+
+Pattern: plain prototypes in `heatshrink_encoder.h` / `heatshrink_decoder.h` (no export macro / `{PREFIX}` N/A).
+
+12 public functions; `nm` on `target/release/libheatshrink_ffi.a` exports all 12 (`comm -23` empty):
+
+`heatshrink_encoder_{alloc,free,reset,sink,poll,finish}`, `heatshrink_decoder_{alloc,free,reset,sink,poll,finish}`.
+
+## Tests ported
+
+| Suite | Approach |
+|-------|----------|
+| `test_heatshrink_dynamic.c` encoding/decoding/integration samples | Ported case-for-case names into `heatshrink-core/tests/public_api.rs` (9 tests) |
+| Null / alloc ABI | `heatshrink-ffi/tests/abi.rs` (4 tests) |
+| `test_heatshrink_static.c` | Out of scope (static alloc mode) |
+| `test_heatshrink_dynamic_theft.c` | Out of scope (libtheft) |
+| White-box `static` internals | Not present as separate suites beyond state machines; no FFI removals |
+
+## One-command demo
+
+```sh
+make parity
+```
+

@@ -30,7 +30,8 @@ removing it, or changing its driver_args or fixtures is then a gate problem.
 reports go: the full compare and `stop` write parity-report.{md,json}; module
 runs (subagentStop, --module) write parity-report.modules.{md,json}.
 
-State lives outside the repo in ./state/<sha256 of repo path>.json:
+State lives outside the repo in
+~/.local/state/c-rust-parity/<sha256 of repo path>.json:
   - oracle_pins:  sha256 of every file matched by `oracle_sources`
   - fixture_pins: sha256 of every fixture ever seen, top-level and module globs
                   (fixtures may be added, never removed or edited)
@@ -92,7 +93,10 @@ from typing import Any
 HOOK_VERSION = "2"
 HOOK_PATH = Path(__file__).resolve()
 HOOK_DIR = HOOK_PATH.parent
-STATE_DIR = HOOK_DIR / "state"
+# Shared per machine, never under a repo. save_state rewrites this file every
+# run; an in-repo copy is hashed into tree_hash and the unchanged-tree cache
+# can never hit. The hashed filename keeps one directory safe for every repo.
+STATE_DIR = Path.home() / ".local" / "state" / "c-rust-parity"
 TEMPLATE_PATH = HOOK_DIR / "parity.template.json"
 
 CONFIG_REL = ".cursor/parity.json"

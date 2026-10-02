@@ -17,7 +17,7 @@
   "modules": {
     "encoder": {
       "driver_args": ["--sections", "encoder"],
-      "ready": false,
+      "ready": true,
       "fixtures": ["tests/inputs/**/*"]
     },
     "decoder": {

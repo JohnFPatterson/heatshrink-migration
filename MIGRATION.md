@@ -40,7 +40,24 @@ Fixed driver parameters: `window_sz2=8`, `lookahead_sz2=4`, decoder input buffer
 
 ## SonarQube findings summary
 
-*(Filled in Phase 3 after reading the stored analysis via SonarQube cloud-hosted MCP — no new scan.)*
+**[DEMO: SonarQube cloud-hosted MCP]** — read stored analysis only (no new scan).
+
+- Project: heatshrink-migration (resolved via `search_my_sonarqube_projects`; key not written here)
+- Context: long-lived branch `master`, analysis date `2026-10-02T00:38:18+0000`
+- No pull-request analysis for this port branch yet; used `master`
+- Security hotspots (`TO_REVIEW`): none
+- Open issues on library encoder/decoder `.c`: **none**
+- Open issues total: 9 (CLI + tests only). No `PE-NNN` proposed (no driver-visible safer behavior change on library C)
+
+| Rule | C behavior | Rust belief |
+|------|------------|-------------|
+| `c:S2612` SECURITY @ `heatshrink.c:139` (MAJOR) | CLI `open(..., S_IRWXO)` grants world permissions on output files | Out of scope (CLI companion). Library/FFI never create files. Not treated as a port fix. |
+| `c:S128` MAINTAINABILITY @ `heatshrink.c:412` (BLOCKER) | CLI switch fall-through | Out of scope (CLI). Note: library encoder has a related intentional fall-through at `heatshrink_encoder.c:236-239` which the port **matches** (documented in `PARITY.md`). |
+| `c:S1763` RELIABILITY @ `test_heatshrink_dynamic.c:173,202,228,406,433,569,748` (MAJOR) | Unreachable code after early returns in tests | Out of scope (tests). Not a library behavior change. |
+
+**CI / quality gate policy:** A Sonar quality gate must not fail the port on legacy C issues alone. Prefer new-code conditions. This repo has no Sonar CI gate wired in-tree yet; document when one is added.
+
+**No `PE-NNN` rows.** Matching C remains the default for the library.
 
 ## Parity modules
 

@@ -399,13 +399,15 @@ impl Encoder {
         {
             let mut pos = end as i16 - 1;
             while pos - start as i16 >= 0 {
-                let pos = pos as usize;
-                if self.buffer[pos + match_maxlen as usize]
+                // Keep the `i16` cursor (`pos -= 1` below). A shadowed `pos`
+                // does not compile, and a mutable copy would never advance.
+                let pos_u = pos as usize;
+                if self.buffer[pos_u + match_maxlen as usize]
                     == self.buffer[end + match_maxlen as usize]
-                    && self.buffer[pos] == self.buffer[end]
+                    && self.buffer[pos_u] == self.buffer[end]
                 {
                     let mut len = 1usize;
-                    while len < maxlen && self.buffer[pos + len] == self.buffer[end + len] {
+                    while len < maxlen && self.buffer[pos_u + len] == self.buffer[end + len] {
                         len += 1;
                     }
                     if len as u16 > match_maxlen {

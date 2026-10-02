@@ -284,7 +284,9 @@ impl Decoder {
     fn st_yield_backref(&mut self, oi: &mut OutputInfo<'_>) -> HsdState {
         let mut count = oi.buf.len() - *oi.output_size;
         if count > 0 {
-            if self.output_count < count as u16 {
+            // Promote like C (`uint16_t < size_t`): truncating `count` to `u16`
+            // wraps buffers of 65536 bytes or more and skips the cap.
+            if (self.output_count as usize) < count {
                 count = self.output_count as usize;
             }
             let ibs = self.input_buffer_size() as usize;

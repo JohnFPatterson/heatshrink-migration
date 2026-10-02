@@ -1,0 +1,13 @@
+[package]
+name = "heatshrink-driver"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Differential parity driver for heatshrink (matches tools/heatshrink-oracle.c)"
+
+[[bin]]
+name = "heatshrink-driver"
+path = "src/main.rs"
+
+[dependencies]
+heatshrink-core = { path = "../heatshrink-core" }

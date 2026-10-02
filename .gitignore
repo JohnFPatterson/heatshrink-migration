@@ -9,3 +9,8 @@ test_heatshrink_static
 *.dSYM
 *.exe
 benchmark_out/
+/target/
+/build/
+Cargo.lock
+
+/.cursor/hooks/c-rust-parity/state/

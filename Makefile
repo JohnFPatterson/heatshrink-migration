@@ -120,3 +120,27 @@ libheatshrink_dynamic.a: ${DYNAMIC_OBJS}
 *.os: Makefile *.h
 *.od: Makefile *.h
 
+# --- C-to-Rust parity ---
+.PHONY: parity-build parity oracle asan-oracle
+
+parity-build: build/oracle
+	cargo build --release --target-dir target -p heatshrink-driver -p heatshrink-core -p heatshrink-ffi
+
+build/oracle: tools/heatshrink-oracle.c heatshrink_encoder.c heatshrink_decoder.c \
+		heatshrink_encoder.h heatshrink_decoder.h heatshrink_common.h heatshrink_config.h
+	mkdir -p build
+	$(CC) -std=c99 $(CFLAGS) -I. -o build/oracle.tmp tools/heatshrink-oracle.c \
+		heatshrink_encoder.c heatshrink_decoder.c
+	mv build/oracle.tmp build/oracle
+
+oracle: build/oracle
+
+parity: parity-build
+	printf '%s' '{"status":"completed","loop_count":0,"workspace_roots":["'"$(CURDIR)"'"]}' \
+		| ./.cursor/hooks/c-rust-parity/parity_gate.py --force
+
+asan-oracle: tools/heatshrink-oracle.c heatshrink_encoder.c heatshrink_decoder.c
+	mkdir -p build/asan
+	gcc -std=c99 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -I. \
+		-o build/asan/oracle tools/heatshrink-oracle.c heatshrink_encoder.c heatshrink_decoder.c
+

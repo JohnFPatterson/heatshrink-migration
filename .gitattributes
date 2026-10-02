@@ -1,0 +1,3 @@
+/tests/inputs/**    -text
+/tests/compressed/** -text
+/tests/parity/**    -text

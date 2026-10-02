@@ -22,7 +22,7 @@
     },
     "decoder": {
       "driver_args": ["--sections", "decoder"],
-      "ready": false,
+      "ready": true,
       "fixtures": ["tests/compressed/**/*"]
     }
   }

@@ -368,10 +368,16 @@ impl Encoder {
         let mut match_maxlen = 0u16;
         let mut match_index = MATCH_NOT_FOUND;
         let needlepoint = end as usize;
+        // C compares after integer promotions to `int`:
+        //   pos - (int16_t)start >= 0
+        // so `pos == i16::MIN` (the index slot `do_indexing` stores for
+        // offset 32768) ends the walk. Subtracting in `i16` overflows.
+        // (heatshrink_encoder.c:find_longest_match).
+        let start_i = i32::from(start as i16);
 
         if USE_INDEX {
             let mut pos = self.search_index[end as usize];
-            while pos - start as i16 >= 0 {
+            while i32::from(pos) - start_i >= 0 {
                 let pospoint = pos as usize;
                 if buf[pospoint + match_maxlen as usize] != buf[needlepoint + match_maxlen as usize]
                 {
@@ -395,8 +401,9 @@ impl Encoder {
                 pos = self.search_index[pos as usize];
             }
         } else {
-            let mut pos = end as i16 - 1;
-            while pos - start as i16 >= 0 {
+            // C: `int16_t pos = end - 1` subtracts in `int`, then narrows.
+            let mut pos = (i32::from(end) - 1) as i16;
+            while i32::from(pos) - start_i >= 0 {
                 let pospoint = pos as usize;
                 if buf[pospoint + match_maxlen as usize] == buf[needlepoint + match_maxlen as usize]
                     && buf[pospoint] == buf[needlepoint]

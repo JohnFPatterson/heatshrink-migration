@@ -144,6 +144,27 @@ fn encoder_should_emit_series_of_same_byte_as_literal_then_backref() {
 }
 
 #[test]
+fn encoder_match_search_survives_window_15_index_sentinel() {
+    // `do_indexing` stores offsets >= 32768 as negative `i16`s. A later
+    // repeat of the byte at the start of the current buffer used to panic
+    // on the `i16` chain walk (`alloc(15, …)` is a valid config).
+    let input = [b'a'; 64];
+    let comp = compress(&input, MAX_WINDOW_BITS, 4, 256, 256).unwrap();
+    let exp = decompress(&comp, 256, MAX_WINDOW_BITS, 4, 256, 256).unwrap();
+    assert_eq!(exp, input);
+
+    // One short of a full window: indexing stores offset 32768 as `i16::MIN`
+    // without wrapping `input_offset + input_size` in `u16`.
+    let mut near_full = vec![0u8; (1 << MAX_WINDOW_BITS) - 1];
+    near_full[0] = 7;
+    near_full[100] = 7;
+    near_full[4000] = 7;
+    let comp = compress(&near_full, MAX_WINDOW_BITS, 4, 4096, 4096).unwrap();
+    let exp = decompress(&comp, 256, MAX_WINDOW_BITS, 4, 4096, 4096).unwrap();
+    assert_eq!(exp, near_full);
+}
+
+#[test]
 fn encoder_poll_should_detect_repeated_substring() {
     let input = b"abcabcabcabc";
     let comp = compress(input, 8, 4, 256, 256).unwrap();

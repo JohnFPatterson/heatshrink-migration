@@ -1,6 +1,7 @@
 heatshrink
 test_heatshrink_dynamic
 test_heatshrink_static
+test_heatshrink_dynamic_ffi
 *.o
 *.od
 *.os
@@ -9,3 +10,6 @@ test_heatshrink_static
 *.dSYM
 *.exe
 benchmark_out/
+/target/
+/build/
+/.cursor/hooks/c-rust-parity/state/

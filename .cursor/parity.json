@@ -1,10 +1,21 @@
 {
   "$comment": "heatshrink C/Rust differential parity gate config",
-  "build": ["make", "build/oracle"],
-  "c_cmd": ["./build/oracle", "{input}"],
-  "rust_cmd": ["./target/release/rust-driver", "{input}"],
+  "build": [
+    "make",
+    "parity-build"
+  ],
+  "c_cmd": [
+    "./build/oracle",
+    "{input}"
+  ],
+  "rust_cmd": [
+    "./target/release/rust-driver",
+    "{input}"
+  ],
   "input_mode": "arg",
-  "fixtures": ["tests/inputs/**/*"],
+  "fixtures": [
+    "tests/inputs/**/*"
+  ],
   "report_dir": "build/parity-gate",
   "oracle_sources": [
     "heatshrink_encoder.c",
@@ -16,10 +27,23 @@
     "heatshrink_config.h"
   ],
   "exceptions_file": "PARITY_EXCEPTIONS.md",
-  "exceptions_rs": ["*-core/tests/exceptions.rs"],
-  "exceptions_test": ["cargo", "test", "-p", "heatshrink-core", "--test", "exceptions", "--target-dir", "target"],
+  "exceptions_rs": [
+    "*-core/tests/exceptions.rs"
+  ],
+  "exceptions_test": [
+    "cargo",
+    "test",
+    "-p",
+    "heatshrink-core",
+    "--test",
+    "exceptions",
+    "--target-dir",
+    "target"
+  ],
   "per_run_timeout_s": 30,
   "build_timeout_s": 600,
   "compare_stderr": false,
-  "hash_exclude": ["build/**"]
+  "hash_exclude": [
+    "build/**"
+  ]
 }
